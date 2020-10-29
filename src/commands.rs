@@ -1,17 +1,17 @@
 use std::slice;
 
-use crate::filters::{Filter, LenFilter, MatchFilter, SeqFilter, Word};
+use crate::filters::{Filter, LenFilter, MatchFilter, SeqFilter};
 use std::rc::Rc;
 
 type Filters = Vec<Rc<dyn Filter>>;
 
 pub struct CommandResult<'a> {
     command: &'a Command,
-    words: slice::Iter<'a, Word>,
+    words: slice::Iter<'a, Vec<char>>,
 }
 
 impl<'a> Iterator for CommandResult<'a> {
-    type Item = &'a Word;
+    type Item = &'a [char];
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(match_word) = self.words.next() {
@@ -69,7 +69,7 @@ impl Command {
         Some(Command::new(filters))
     }
 
-    pub fn result<'a>(&'a self, words: slice::Iter<'a, Word>) -> CommandResult<'a> {
+    pub fn result<'a>(&'a self, words: slice::Iter<'a, Vec<char>>) -> CommandResult<'a> {
         CommandResult {
             command: self,
             words,

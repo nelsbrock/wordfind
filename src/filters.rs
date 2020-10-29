@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 
-pub type Word = Vec<char>;
-
 pub(crate) trait Filter {
     fn parse(fstr: &str) -> Option<Self>
     where
         Self: Sized;
-    fn check(&self, word: &Word) -> bool;
+    fn check(&self, word: &[char]) -> bool;
 }
 
 pub(crate) struct MatchFilter {
@@ -36,7 +34,7 @@ impl Filter for MatchFilter {
         Some(MatchFilter::new(chars, wildcards))
     }
 
-    fn check(&self, word: &Word) -> bool {
+    fn check(&self, word: &[char]) -> bool {
         let mut chars = self.chars.clone();
         let mut wildcards = self.wildcards;
         for wc in word {
@@ -114,7 +112,7 @@ impl Filter for LenFilter {
         Some(Self::new(ctype, clen))
     }
 
-    fn check(&self, word: &Word) -> bool {
+    fn check(&self, word: &[char]) -> bool {
         use ComparisonType::*;
         let len = word.len();
         match self.ctype {
@@ -129,11 +127,11 @@ impl Filter for LenFilter {
 
 pub(crate) struct SeqFilter {
     start: usize,
-    seq: Word,
+    seq: Vec<char>,
 }
 
 impl SeqFilter {
-    fn new(start: usize, seq: Word) -> Self {
+    fn new(start: usize, seq: Vec<char>) -> Self {
         Self { start, seq }
     }
 }
@@ -154,7 +152,7 @@ impl Filter for SeqFilter {
         Some(Self::new(start, seq.chars().collect()))
     }
 
-    fn check(&self, word: &Word) -> bool {
+    fn check(&self, word: &[char]) -> bool {
         word.len() >= self.start + self.seq.len()
             && word
                 .iter()

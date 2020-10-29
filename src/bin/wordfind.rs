@@ -3,7 +3,6 @@ use std::io::{BufRead, BufReader, Write};
 use std::{env, io};
 
 use wordfind::commands::Command;
-use wordfind::filters::Word;
 
 fn main() -> Result<(), String> {
     let env_argc = env::args().len();
@@ -59,7 +58,7 @@ fn main() -> Result<(), String> {
     }
 }
 
-fn read_words(path: &str) -> std::io::Result<Vec<Word>> {
+fn read_words(path: &str) -> std::io::Result<Vec<Vec<char>>> {
     let file = File::open(path)?;
     let reader = BufReader::new(file);
 
