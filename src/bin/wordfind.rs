@@ -20,6 +20,8 @@ fn main() -> Result<(), String> {
         Err(err) => return Err(format!("Error reading dictionary file: {}", err)),
     };
 
+    let mut last_cmd: Option<Command> = None;
+
     loop {
         eprint!("> ");
         io::stderr().flush().unwrap();
@@ -38,7 +40,7 @@ fn main() -> Result<(), String> {
             continue;
         }
 
-        let command = match Command::parse(input) {
+        let command = match Command::parse(input, last_cmd.as_ref()) {
             Some(command) => command,
             None => {
                 eprintln!("Invalid command.");
@@ -46,7 +48,9 @@ fn main() -> Result<(), String> {
             }
         };
 
-        let result = command.result(words.iter());
+        last_cmd = Some(command);
+
+        let result = last_cmd.as_ref().unwrap().result(words.iter());
         for r in result {
             println!("{}", r.iter().collect::<String>());
         }
