@@ -36,10 +36,12 @@ impl Command {
         let mut filters: Filters = Vec::new();
 
         for (part_i, part) in cstr.split_ascii_whitespace().enumerate() {
-            let (modifier, index) = part.split_at(1);
+            let mut part_c = part.chars();
+            let modifier = part_c.next().unwrap(); // part cannot be empty
 
-            if modifier == "%" {
+            if modifier == '%' {
                 // parse history reference
+                let index = part_c.as_str();
                 let index = if index == "%" {
                     part_i
                 } else {
