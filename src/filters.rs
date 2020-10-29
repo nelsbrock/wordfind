@@ -11,30 +11,40 @@ pub(crate) trait Filter {
 
 pub(crate) struct MatchFilter {
     chars: HashMap<char, usize>,
+    wildcards: usize,
 }
 
 impl MatchFilter {
-    fn new(chars: HashMap<char, usize>) -> Self {
-        Self { chars }
+    fn new(chars: HashMap<char, usize>, wildcards: usize) -> Self {
+        Self { chars, wildcards }
     }
 }
 
 impl Filter for MatchFilter {
     fn parse(fstr: &str) -> Option<Self> {
         let mut chars = HashMap::new();
+        let mut wildcards = 0;
         for c in fstr.chars().flat_map(|c| c.to_lowercase()) {
-            let old = *chars.get(&c).unwrap_or(&0);
-            chars.insert(c, old + 1);
+            match c {
+                '*' => wildcards += 1,
+                c => {
+                    let old = *chars.get(&c).unwrap_or(&0);
+                    chars.insert(c, old + 1);
+                }
+            }
         }
-        Some(MatchFilter::new(chars))
+        Some(MatchFilter::new(chars, wildcards))
     }
 
     fn check(&self, word: &Word) -> bool {
         let mut chars = self.chars.clone();
+        let mut wildcards = self.wildcards;
         for wc in word {
             let old = *chars.get(wc).unwrap_or(&0);
             if old > 0 {
                 chars.insert(*wc, old - 1);
+            } else if wildcards > 0 {
+                wildcards -= 1;
             } else {
                 return false;
             }
