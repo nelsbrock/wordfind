@@ -157,7 +157,7 @@ impl Filter for SeqFilter {
             && word
                 .iter()
                 .skip(self.start)
-                .zip(self.seq.iter())
+                .zip(&self.seq)
                 .all(|(wc, sc)| wc == sc)
     }
 }
