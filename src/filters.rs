@@ -128,11 +128,16 @@ impl Filter for LenFilter {
 pub(crate) struct SeqFilter {
     start: usize,
     seq: Vec<char>,
+    min_word_len: usize,
 }
 
 impl SeqFilter {
     fn new(start: usize, seq: Vec<char>) -> Self {
-        Self { start, seq }
+        Self {
+            start,
+            seq,
+            min_word_len: start + seq.len(),
+        }
     }
 }
 
@@ -153,7 +158,7 @@ impl Filter for SeqFilter {
     }
 
     fn check(&self, word: &[char]) -> bool {
-        word.len() >= self.start + self.seq.len()
+        word.len() >= self.min_word_len
             && word
                 .iter()
                 .skip(self.start)
