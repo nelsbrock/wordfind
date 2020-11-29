@@ -40,9 +40,10 @@ fn main() -> Result<(), String> {
         }
 
         let command = match Command::parse(input, last_cmd.as_ref()) {
-            Some(command) => command,
-            None => {
-                eprintln!("Invalid command.");
+            Ok(command) => command,
+            Err(err) => {
+                eprintln!("Error: {}", err);
+                eprintln!();
                 continue;
             }
         };

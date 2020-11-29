@@ -1,9 +1,29 @@
 use std::collections::HashMap;
+use std::error::Error;
+use std::fmt;
+use std::fmt::{Display, Formatter};
+use std::str::FromStr;
+
+#[derive(Debug)]
+pub struct FilterParseError {
+    description: String,
+}
+
+impl Display for FilterParseError {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.description)
+    }
+}
+
+impl Error for FilterParseError {}
+
+impl FilterParseError {
+    fn new(description: String) -> FilterParseError {
+        FilterParseError { description }
+    }
+}
 
 pub(crate) trait Filter {
-    fn parse(fstr: &str) -> Option<Self>
-    where
-        Self: Sized;
     fn check(&self, word: &[char]) -> bool;
 }
 
@@ -18,11 +38,13 @@ impl MatchFilter {
     }
 }
 
-impl Filter for MatchFilter {
-    fn parse(fstr: &str) -> Option<Self> {
+impl FromStr for MatchFilter {
+    type Err = FilterParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut chars = HashMap::new();
         let mut wildcards = 0;
-        for c in fstr.chars().flat_map(|c| c.to_lowercase()) {
+        for c in s.chars().flat_map(|c| c.to_lowercase()) {
             match c {
                 '*' => wildcards += 1,
                 c => {
@@ -31,9 +53,11 @@ impl Filter for MatchFilter {
                 }
             }
         }
-        Some(MatchFilter::new(chars, wildcards))
+        Ok(MatchFilter::new(chars, wildcards))
     }
+}
 
+impl Filter for MatchFilter {
     fn check(&self, word: &[char]) -> bool {
         let mut chars = self.chars.clone();
         let mut wildcards = self.wildcards;
@@ -70,14 +94,16 @@ impl LenFilter {
     }
 }
 
-impl Filter for LenFilter {
-    fn parse(fstr: &str) -> Option<Self> {
+impl FromStr for LenFilter {
+    type Err = FilterParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         use ComparisonType::*;
 
-        let fchars: Vec<char> = fstr.chars().collect();
+        let fchars: Vec<char> = s.chars().collect();
 
-        if fstr.is_empty() {
-            return None;
+        if s.is_empty() {
+            return Err(FilterParseError::new("empty string".into()));
         }
 
         let ctype;
@@ -102,16 +128,18 @@ impl Filter for LenFilter {
                 clen_start = 1;
             }
         } else {
-            return None;
+            return Err(FilterParseError::new("invalid comparison operator".into()));
         }
-        let clen = match fstr.split_at(clen_start).1.parse() {
+        let clen = match s.split_at(clen_start).1.parse() {
             Ok(clen) => clen,
-            Err(_) => return None,
+            Err(_) => return Err(FilterParseError::new("invalid length".into())),
         };
 
-        Some(Self::new(ctype, clen))
+        Ok(Self::new(ctype, clen))
     }
+}
 
+impl Filter for LenFilter {
     fn check(&self, word: &[char]) -> bool {
         use ComparisonType::*;
         let len = word.len();
@@ -133,30 +161,38 @@ pub(crate) struct SeqFilter {
 
 impl SeqFilter {
     fn new(start: usize, seq: Vec<char>) -> Self {
+        let min_word_len = start + seq.len();
         Self {
             start,
             seq,
-            min_word_len: start + seq.len(),
+            min_word_len,
         }
     }
 }
 
-impl Filter for SeqFilter {
-    fn parse(fstr: &str) -> Option<Self> {
-        let mut fparts = fstr.splitn(2, ':');
-        let start = fparts.next()?;
+impl FromStr for SeqFilter {
+    type Err = FilterParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut fparts = s.splitn(2, ':');
+        let start = fparts.next().unwrap(); // splitn always returns at least one item
         let start = match start.len() {
             0 => 0,
             _ => match start.parse() {
                 Ok(start) => start,
-                Err(_) => return None,
+                Err(_) => return Err(FilterParseError::new("invalid start index".into())),
             },
         };
-        let seq = fparts.next()?;
+        let seq = match fparts.next() {
+            Some(seq) => seq,
+            None => return Err(FilterParseError::new("missing sequence".into())),
+        };
 
-        Some(Self::new(start, seq.chars().collect()))
+        Ok(Self::new(start, seq.chars().collect()))
     }
+}
 
+impl Filter for SeqFilter {
     fn check(&self, word: &[char]) -> bool {
         word.len() >= self.min_word_len
             && word
