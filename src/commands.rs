@@ -62,18 +62,17 @@ impl Command {
             if modifier == '%' {
                 // parse history reference
                 let index = part_c.as_str();
-                let index = if index == "%" {
-                    part_i
-                } else {
-                    match index.parse() {
+                let index = match index {
+                    "%" => part_i,
+                    num => match num.parse() {
                         Ok(index) => index,
                         Err(_) => {
                             return Err(CommandParseError::new(format!(
                                 "unable to parse history reference `{}`",
                                 part
-                            )))
+                            )));
                         }
-                    }
+                    },
                 };
 
                 let last = match last {
@@ -82,7 +81,7 @@ impl Command {
                         return Err(CommandParseError::new(format!(
                             "history reference `{}` without prior command",
                             part
-                        )))
+                        )));
                     }
                 };
 
