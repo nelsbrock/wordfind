@@ -102,8 +102,8 @@ impl FromStr for LenFilter {
 
         let fchars: Vec<char> = s.chars().collect();
 
-        if s.is_empty() {
-            return Err(FilterParseError::new("empty string".into()));
+        if fchars.len() < 2 {
+            return Err(FilterParseError::new("invalid comparison".into()));
         }
 
         let ctype;
