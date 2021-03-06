@@ -1,6 +1,8 @@
+use rustyline::error::ReadlineError;
+use rustyline::Editor;
+use std::env;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Write};
-use std::{env, io};
+use std::io::{BufRead, BufReader};
 
 use wordfind::commands::Command;
 
@@ -21,25 +23,25 @@ fn main() -> Result<(), String> {
 
     let mut last_cmd: Option<Command> = None;
 
-    loop {
-        eprint!("> ");
-        io::stderr().flush().unwrap();
-        let mut input = String::new();
-        match io::stdin().read_line(&mut input) {
-            Ok(len) => {
-                if len == 0 {
-                    return Ok(());
-                }
-            }
-            Err(err) => return Err(format!("Error reading stdin: {}", err)),
-        }
+    let mut rl = Editor::<()>::new();
 
-        let input = input.trim();
+    loop {
+        let input = match rl.readline("> ") {
+            Ok(mut line) => {
+                line = line.trim().to_string();
+                rl.add_history_entry(&line);
+                line
+            }
+            Err(ReadlineError::Interrupted) => break,
+            Err(ReadlineError::Eof) => break,
+            Err(err) => return Err(err.to_string()),
+        };
+
         if input.is_empty() {
             continue;
         }
 
-        let command = match Command::parse(input, last_cmd.as_ref()) {
+        let command = match Command::parse(&input, last_cmd.as_ref()) {
             Ok(command) => command,
             Err(err) => {
                 eprintln!("Error: {}", err);
@@ -55,8 +57,10 @@ fn main() -> Result<(), String> {
             println!("{}", r.iter().collect::<String>());
         }
 
-        eprintln!();
+        println!();
     }
+
+    Ok(())
 }
 
 fn read_words(path: &str) -> std::io::Result<Vec<Vec<char>>> {
